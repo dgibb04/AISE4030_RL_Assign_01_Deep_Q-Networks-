@@ -66,11 +66,9 @@ The custom reward wrapper also applies:
 ├── utils.py
 ├── README.md
 ├── requirements.txt
-├── .gitignore
 ├── d3qn_results/
 ├── d3qn_er_results/
-├── d3qn_per_results/
-└── comparison_results/
+└── d3qn_per_results/
 ```
 
 ## Core Files
