@@ -22,8 +22,6 @@ class MarioRewardWrapper(gym.Wrapper):
     """
     Shapes the Mario reward using x-position progress, a time penalty,
     and a death penalty, then clips the result to [-15, 15].
-
-    This aligns with the assignment's environment description.
     """
 
     def __init__(self, env: gym.Env, time_penalty: float = -0.1, death_penalty: float = -15.0) -> None:
@@ -258,7 +256,7 @@ def make_mario_env(
     env_id: str = "SuperMarioBros-1-1-v3",
     render_mode: Optional[str] = None,
     seed: Optional[int] = None,
-) -> gym.Env:
+):
     """
     Creates the fully wrapped Mario environment.
 
@@ -268,7 +266,10 @@ def make_mario_env(
         seed (Optional[int]): Optional random seed.
 
     Returns:
-        gym.Env: Wrapped Mario environment.
+        tuple:
+            env (gym.Env): Wrapped Mario environment.
+            observation_shape (tuple): Final observation shape.
+            action_size (int): Number of discrete actions.
     """
     env = gym_super_mario_bros.make(
         env_id,
@@ -286,4 +287,6 @@ def make_mario_env(
     if seed is not None:
         env.reset(seed=seed)
 
-    return env
+    observation_shape = env.observation_space.shape
+    action_size = env.action_space.n
+    return env, observation_shape, action_size
