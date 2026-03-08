@@ -6,12 +6,20 @@ import os
 from typing import Dict
 
 import numpy as np
+import yaml
 
 from d3qn_agent import D3QNAgent
 from d3qn_er_agent import D3QNERAgent
 from d3qn_per_agent import D3QNPERAgent
 from environment import make_mario_env
-from utils import ensure_dir, load_config, maybe_create_comparison_plots, plot_agent_history, save_history, set_seed
+from utils import (
+    ensure_dir,
+    load_config,
+    maybe_create_comparison_plots,
+    plot_agent_history,
+    save_history,
+    set_seed,
+)
 
 
 def build_agent(config: Dict, state_shape, num_actions: int):
@@ -70,18 +78,18 @@ def train() -> None:
     config = load_config("config.yaml")
     set_seed(int(config["seed"]))
 
-    env = make_mario_env(
+    env, state_shape, num_actions = make_mario_env(
         env_id=config["env_id"],
         render_mode=config.get("render_mode", None),
         seed=int(config["seed"]),
     )
 
-    state_shape = env.observation_space.shape
-    num_actions = env.action_space.n
-
     agent = build_agent(config, state_shape, num_actions)
     results_dir = get_results_dir(config)
     ensure_dir(results_dir)
+
+    with open(os.path.join(results_dir, "config_used.yaml"), "w", encoding="utf-8") as file:
+        yaml.safe_dump(config, file, sort_keys=False)
 
     training_cfg = config["training"]
     total_episodes = int(training_cfg["total_episodes"])
