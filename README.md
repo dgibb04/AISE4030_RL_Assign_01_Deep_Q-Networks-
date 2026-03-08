@@ -142,6 +142,7 @@ nes-py
 numpy==1.26.4
 matplotlib
 pyyaml
+opencv-python
 ```
 
 ## Verify the Environment
