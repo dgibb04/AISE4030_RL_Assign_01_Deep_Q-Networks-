@@ -60,7 +60,7 @@ class MarioRewardWrapper(gym.Wrapper):
     def __init__(
         self,
         env: gym.Env,
-        progress_scale: float = 0.2,
+        progress_scale: float = 0.05,
         time_penalty: float = -0.02,
         flag_reward: float = 50.0,
         death_penalty: float = -15.0,

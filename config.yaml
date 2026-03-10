@@ -12,7 +12,7 @@ training:
   gamma: 0.9
   epsilon_start: 1.0
   epsilon_min: 0.1
-  epsilon_decay: 0.99999975
+  epsilon_decay: 0.99999
   target_sync_steps: 10000
   gradient_clip: 1.0
   save_every: 50

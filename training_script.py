@@ -38,6 +38,7 @@ def get_resume_signature(config: Dict) -> Dict:
         "agent_type": config["agent_type"],
         "env_id": config["env_id"],
         "seed": int(config["seed"]),
+        "frame_skip": int(config.get("frame_skip", 4)),
         "training": {
             key: config["training"][key]
             for key in (
@@ -73,6 +74,10 @@ def find_latest_checkpoint(results_dir: str) -> str | None:
     Returns:
         str | None: Latest checkpoint path, if any.
     """
+    rolling_checkpoint = os.path.join(results_dir, "checkpoint_latest.pth")
+    if os.path.exists(rolling_checkpoint):
+        return rolling_checkpoint
+
     latest_path = None
     latest_episode = -1
     pattern = re.compile(r"checkpoint_ep_(\d+)\.pth$")
@@ -114,6 +119,9 @@ def save_training_checkpoint(
         "agent_state": agent.get_checkpoint_state(),
     }
     torch.save(checkpoint, filepath)
+
+    rolling_checkpoint = os.path.join(os.path.dirname(filepath), "checkpoint_latest.pth")
+    torch.save(checkpoint, rolling_checkpoint)
 
 
 def try_resume_training(agent, config: Dict, results_dir: str):
@@ -227,6 +235,8 @@ def train() -> None:
         "episode_losses": [],
         "episode_lengths": [],
         "epsilon_values": [],
+        "flag_reached": [],
+        "flag_reach_rate_percent": [],
     }
     start_episode, resumed_history, resumed_checkpoint = try_resume_training(agent, config, results_dir)
     if resumed_history is not None:
@@ -251,6 +261,7 @@ def train() -> None:
         episode_loss_total = 0.0
         episode_loss_count = 0
         episode_steps = 0
+        reached_flag = False
 
         done = False
         while not done and episode_steps < max_steps_per_episode:
@@ -258,6 +269,7 @@ def train() -> None:
             next_state, reward, terminated, truncated, info = env.step(action)
             next_state = np.asarray(next_state, dtype=np.float32)
             done = bool(terminated or truncated)
+            reached_flag = reached_flag or bool(info.get("flag_get", False))
 
             loss = agent.step(state, action, reward, next_state, done)
 
@@ -275,16 +287,22 @@ def train() -> None:
         history["episode_losses"].append(mean_loss)
         history["episode_lengths"].append(int(episode_steps))
         history["epsilon_values"].append(float(agent.epsilon))
+        history["flag_reached"].append(int(reached_flag))
+        history["flag_reach_rate_percent"].append(
+            100.0 * float(np.mean(history["flag_reached"]))
+        )
 
         if episode % log_every == 0 or episode == 1:
             recent_rewards = history["episode_rewards"][-window:]
             moving_reward = float(np.mean(recent_rewards))
+            recent_flag_rate = 100.0 * float(np.mean(history["flag_reached"][-window:]))
             print(
                 f"Episode {episode}/{total_episodes} | "
                 f"Reward: {episode_reward:.2f} | "
                 f"Avg Reward: {moving_reward:.2f} | "
                 f"Loss: {mean_loss:.4f} | "
-                f"Epsilon: {agent.epsilon:.4f}"
+                f"Epsilon: {agent.epsilon:.4f} | "
+                f"Flag Rate: {recent_flag_rate:.1f}%"
             )
 
         if episode % save_every == 0:

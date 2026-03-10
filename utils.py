@@ -166,6 +166,15 @@ def plot_agent_history(history: Dict, save_dir: str, window: int = 50) -> None:
         window=window,
     )
 
+    if "flag_reach_rate_percent" in history:
+        plot_metric(
+            history["flag_reach_rate_percent"],
+            os.path.join(save_dir, "flag_rate_curve.png"),
+            "Flag Reach Rate",
+            "Percent",
+            window=window,
+        )
+
 
 def plot_overlay(
     histories: Dict[str, Dict],
@@ -244,3 +253,13 @@ def maybe_create_comparison_plots(config: Dict) -> None:
         ylabel="Loss",
         window=window,
     )
+
+    if all("flag_reach_rate_percent" in history for history in histories.values()):
+        plot_overlay(
+            histories,
+            os.path.join(comparison_dir, "flag_rate_overlay.png"),
+            metric_key="flag_reach_rate_percent",
+            title="Flag Reach Rate Comparison",
+            ylabel="Percent",
+            window=window,
+        )

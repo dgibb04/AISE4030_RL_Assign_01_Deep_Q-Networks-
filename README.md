@@ -208,7 +208,7 @@ training:
   gamma: 0.9
   epsilon_start: 1.0
   epsilon_min: 0.1
-  epsilon_decay: 0.99999975
+  epsilon_decay: 0.999999
   target_sync_steps: 10000
   gradient_clip: 1.0
 
@@ -279,6 +279,7 @@ Each folder may contain:
 - `history.json`
 - `reward_curve.png`
 - `loss_curve.png`
+- `flag_rate_curve.png`
 
 If at least two agent histories are available, the project also generates overlay plots in:
 
@@ -288,6 +289,7 @@ These include:
 
 - `reward_overlay.png`
 - `loss_overlay.png`
+- `flag_rate_overlay.png`
 
 ## Training Workflow
 A typical workflow is:
@@ -369,7 +371,7 @@ This project was organized to make it easy to:
 The codebase includes a small set of implementation-level optimizations to reduce CPU overhead during training while preserving the assignment's fairness requirement that the only experimental difference between agents is the experience management strategy.
 
 ### Implementation Optimizations Applied
-- action selection and target computation use PyTorch inference mode to reduce autograd overhead
+- action selection and target computation avoid unnecessary gradient tracking during evaluation passes
 - gradient updates use `optimizer.zero_grad(set_to_none=True)` to reduce optimizer memory work
 - repeated state conversions in the training loop use `np.asarray(...)` to avoid unnecessary copies when possible
 - the PER buffer caches the current maximum priority instead of rescanning the full sum tree on every insertion
@@ -379,8 +381,9 @@ These changes do **not** alter the Dueling Network architecture, Double DQN targ
 ### Parameter Adjustments Relevant to the Assignment
 - `save_every` was increased from `100` to `500`
 - `log_every` was increased from `10` to `50`
+- `epsilon_decay` was adjusted from `0.99999975` to `0.999999`
 
-These changes reduce checkpoint and console overhead only. They are not part of the assignment's comparison hyperparameters and do not affect the learning rule.
+The logging and checkpoint changes reduce overhead only. The epsilon decay change speeds up the exploration schedule and should be documented consistently across all three agents because the original schedule kept action selection highly random for too long relative to the available training budget.
 
 ### Assignment Hyperparameters Kept Unchanged
 The following assignment-relevant settings were intentionally left unchanged in the default configuration so the comparison remains fair across all three agents:
@@ -391,7 +394,7 @@ The following assignment-relevant settings were intentionally left unchanged in 
 - learning starts threshold
 - learning rate
 - discount factor (`gamma`)
-- epsilon start / minimum / decay
+- epsilon start / minimum
 - target network sync frequency
 - PER `alpha`
 - PER `beta_start` and `beta_end`
@@ -403,6 +406,8 @@ If you later reduce `total_episodes` or `max_steps_per_episode` for CPU-only run
 
 The default preprocessing keeps `frame_skip: 4` in `config.yaml`. If you increase `frame_skip`, treat it as a documented preprocessing change and apply the same value to all three agents.
 
-Current reward shaping in `environment.py` uses a stronger forward-progress term, a smaller time penalty, a large terminal bonus for reaching the flag, and a death penalty. Forward progress is prevented from becoming negative unless Mario dies on that step.
+Current reward shaping in `environment.py` uses a reduced forward-progress scale so episode returns stay comparable to the time, stagnation, death, and flag-related penalties and bonuses. Forward progress is prevented from becoming negative unless Mario dies on that step.
 
 The environment also truncates an episode early if Mario fails to make forward progress for too many consecutive agent steps. This stagnation termination uses a smaller penalty than death and is tracked separately from the death penalty.
+
+Training results now also record how often Mario reaches the flag. Each run saves the per-episode flag success history in `history.json` and writes a `flag_rate_curve.png` to the corresponding results directory.
